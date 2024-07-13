@@ -1,5 +1,4 @@
 use macroquad::{prelude::*, miniquad::window::screen_size};
-extern crate rand;
 use num_complex::Complex;
 use rayon::prelude::*;
 
