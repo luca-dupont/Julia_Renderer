@@ -28,7 +28,7 @@ fn map_value(value: f64, from_min: f64, from_max: f64, to_min: f64, to_max: f64)
 fn f(mut z : Complex<f64>, c : Complex<f64>) -> f64 {
     let mut post_iters = 0;
     for i in 0..MAX_ITERS {
-        // f_(n+1)(z) = f_(n)(z)^2 + c
+        // f(z) = z^2 + c
         z = z*z + c;
         let norm = z.norm();
 
