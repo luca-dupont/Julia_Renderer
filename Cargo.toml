@@ -7,6 +7,5 @@ edition = "2021"
 
 [dependencies]
 macroquad = "0.4.11"
-rand = "0.8"
 rayon = "1.10.0"
 num-complex = "0.4.6"
