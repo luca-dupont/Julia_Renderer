@@ -9,6 +9,8 @@
   ```
 
 ## Controls :
+> Move the mouse around to change the value of c
+---
 * \- : Zoom out
 * \+ : Zoom in
 * ← : Scroll left
