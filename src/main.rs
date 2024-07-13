@@ -4,7 +4,7 @@ use num_complex::Complex;
 use rayon::prelude::*;
 
 // Define constants
-const MAX_ITERS : usize = 500;
+const MAX_ITERS : usize = 200;
 const START_BOUNDARY : f64 = 1.5;
 const ZOOM_FACTOR: f64 = 1.1;
 const SCROLL_FACTOR: f64 = 50.;
