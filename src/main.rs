@@ -1,9 +1,10 @@
 use macroquad::{prelude::*, miniquad::window::screen_size};
 use num_complex::Complex;
 use rayon::prelude::*;
+use scarlet::colormap::{ListedColorMap};
 
 // Define constants
-const MAX_ITERS : usize = 200;
+const MAX_ITERS : usize = 250;
 const START_BOUNDARY : f64 = 1.5;
 const ZOOM_FACTOR: f64 = 1.1;
 const SCROLL_FACTOR: f64 = 50.;
@@ -14,6 +15,7 @@ const POST_ESCAPE_ITERATIONS : usize = 2;
 const FONT_SIZE : f32 = 30.0;
 const TEXT_X : f32 = 10.0;
 const TEXT_Y : f32 = 30.0;
+const WHITE_GRADIENT_RANGE : usize = 20; // Number of white-like colors to be appended to the color map
 
 // Map value from one range to another
 fn map_value(value: f64, from_min: f64, from_max: f64, to_min: f64, to_max: f64) -> f64 {
@@ -28,7 +30,7 @@ fn map_value(value: f64, from_min: f64, from_max: f64, to_min: f64, to_max: f64)
 fn f(mut z : Complex<f64>, c : Complex<f64>) -> f64 {
     let mut post_iters = 0;
     for i in 0..MAX_ITERS {
-        // f(z) = z^2 + c
+        // f_(n+1)(z) = f_(n)(z)^2 + c
         z = z*z + c;
         let norm = z.norm();
 
@@ -42,6 +44,17 @@ fn f(mut z : Complex<f64>, c : Complex<f64>) -> f64 {
     }
     // Return the max iterations if it hasn't escaped
     MAX_ITERS as f64
+}
+
+// Custom color mapping from color vector
+fn transform(color_map : &Vec<[f64; 3]>, val : f64) -> Color  {
+    let map_max_index = color_map.len() as f64 - 1.;
+
+    let index = (map_max_index*val).floor() as usize;
+
+    let color_vals = color_map[index];
+
+    Color {r : color_vals[0] as f32, g : color_vals[1] as f32, b : color_vals[2] as f32, a : 1.}
 }
 
 #[macroquad::main("Julia Set Simulation")]
@@ -66,6 +79,15 @@ async fn main() {
     // Graph translation offsets
     let mut x_offset = 0.;
     let mut y_offset = 0.;
+
+    // Initialize color map
+    let mut magma_color_map : Vec<[f64; 3]> = ListedColorMap::magma().vals;
+    // Add a white gradient as the end of the color map
+    for i in 0..WHITE_GRADIENT_RANGE {
+        let x = 0.9 + (i as f64) * 0.01; // Generate values between 0.9 and 1.0
+        let array = [x, x, x]; // Create an array of the gray scale color
+        magma_color_map.push(array);
+    }
 
     loop {
         // Check for window resizing
@@ -132,20 +154,16 @@ async fn main() {
             .map(|(x,y)| Complex::new(map_value(x as f64, 0., w, -boundary + x_offset, boundary + x_offset, ),map_value(y as f64, 0., h, boundary - y_offset, -boundary - y_offset, )))
             .collect();
 
-        // Apply the f(z) function to each point in parallel
-        let iters: Vec<f64> = normalized_complex_x_y_vec
+        // Transform pixels to colors
+        let colors: Vec<Color> = normalized_complex_x_y_vec
             .par_iter()
-            .map(|z| f(*z, c))
+            .map(|z| f(*z, c)) // Compute number of iterations before escape
+            .map(|x| map_value(x, 0., MAX_ITERS as f64, 1.0, 0.0).clamp(0.0,1.0)) // Normalize value then clamp value to avoid rounding errors which would break the indexing
+            .map(|x| transform(&magma_color_map, x)) // Transform to a color
             .collect();
 
-        // Color each point depending on their required iterations
-        for (iters,( x, y)) in iters.into_iter().zip(x_y_vec.into_iter()) {
-            // Map to [0.0, 255.0]
-            let iters = map_value(iters, 0., MAX_ITERS as f64, 0., 255.);
-            // Invert color
-            let iters = 255. - iters as f32;
-
-            let color = Color {r : iters, g : iters, b : iters, a : 1.};
+        // Color each pixel
+        for (color ,(x, y)) in colors.into_iter().zip(x_y_vec.into_iter()) {
             image.set_pixel(x, y, color);
         }
 
