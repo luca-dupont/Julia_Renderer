@@ -5,7 +5,8 @@ use scarlet::colormap::{ListedColorMap};
 
 // Define constants
 const MAX_ITERS : usize = 250;
-const START_BOUNDARY : f64 = 1.5;
+const START_BOUNDARY : f64 = 2.;
+const ESCAPE_RANGE : f64 = START_BOUNDARY;
 const ZOOM_FACTOR: f64 = 1.1;
 const SCROLL_FACTOR: f64 = 50.;
 const C_RANGE_RE : f64 = 2.;
@@ -34,10 +35,10 @@ fn f(mut z : Complex<f64>, c : Complex<f64>) -> f64 {
         z = z*z + c;
         let norm = z.norm();
 
-        if norm > 2. && post_iters <= POST_ESCAPE_ITERATIONS {
+        if norm > ESCAPE_RANGE && post_iters <= POST_ESCAPE_ITERATIONS {
             // Let it run a couple more iterations after it has escaped
             post_iters += 1;
-        } else if norm > 2. {
+        } else if norm > ESCAPE_RANGE {
             // Subtract log2(log2(|z|)) from the iterations for smoothness
             return i as f64 - norm.log2().log2()
         }
