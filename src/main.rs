@@ -9,14 +9,15 @@ const START_BOUNDARY : f64 = 2.;
 const ESCAPE_RANGE : f64 = START_BOUNDARY;
 const ZOOM_FACTOR: f64 = 1.1;
 const SCROLL_FACTOR: f64 = 50.;
-const C_RANGE_RE : f64 = 2.;
-const C_RANGE_IM : f64 = 0.5;
 const TRANSPARENT_GREY: Color = Color{r : 220., g : 220., b : 220., a : 0.2};
 const POST_ESCAPE_ITERATIONS : usize = 2;
 const FONT_SIZE : f32 = 30.0;
 const TEXT_X : f32 = 10.0;
-const TEXT_Y : f32 = 30.0;
-const WHITE_GRADIENT_RANGE : usize = 20; // Number of white-like colors to be appended to the color map
+const C_TEXT_Y : f32 = 30.0;
+const FPS_TEXT_Y : f32 = 60.;
+const WHITE_GRADIENT_RANGE : usize = 5; // Number of white-like colors to be appended to the color map
+const GRADIENT_START_VAL : f64 = 0.75;
+const INCREMENT : f64 = (1.0-GRADIENT_START_VAL) / WHITE_GRADIENT_RANGE as f64;
 
 // Map value from one range to another
 fn map_value(value: f64, from_min: f64, from_max: f64, to_min: f64, to_max: f64) -> f64 {
@@ -83,11 +84,11 @@ async fn main() {
 
     // Initialize color map
     let mut magma_color_map : Vec<[f64; 3]> = ListedColorMap::magma().vals;
-    // Add a white gradient as the end of the color map
+    // Add a gradient at the end of the color map, going from yellow to white
     for i in 0..WHITE_GRADIENT_RANGE {
-        let x = 0.9 + (i as f64) * 0.01; // Generate values between 0.9 and 1.0
-        let array = [x, x, x]; // Create an array of the gray scale color
-        magma_color_map.push(array);
+        let b = GRADIENT_START_VAL + (i as f64) * INCREMENT; // Generate values between 0.75 and 1.0
+        let color = [1.0, 1.0, b]; // Create an array of the rgb values
+        magma_color_map.push(color);
     }
 
     loop {
@@ -105,7 +106,7 @@ async fn main() {
         if (new_mx != mx || new_my != my) && !freeze {
             (mx, my) = (new_mx, new_my);
             // Map the mouse position to the range in which c lies
-            (mx, my) = (map_value(mx as f64, 0., w, -C_RANGE_RE, C_RANGE_RE,) as f32, map_value(my as f64, 0., h, -C_RANGE_IM, C_RANGE_IM,) as f32);
+            (mx, my) = (map_value(mx as f64, 0., w, -START_BOUNDARY, START_BOUNDARY,) as f32, map_value(my as f64, 0., h, -START_BOUNDARY, START_BOUNDARY,) as f32);
         }
 
         // Handle key presses
@@ -152,7 +153,7 @@ async fn main() {
         // Normalize to desired range and map to individual complex values
         let normalized_complex_x_y_vec : Vec<Complex<f64>> = x_y_vec.clone()
             .into_iter()
-            .map(|(x,y)| Complex::new(map_value(x as f64, 0., w, -boundary + x_offset, boundary + x_offset, ),map_value(y as f64, 0., h, boundary - y_offset, -boundary - y_offset, )))
+            .map(|(x,y)| Complex::new(map_value(x as f64, 0., w, -boundary + x_offset, boundary + x_offset, ),map_value(y as f64, 0., h, boundary - y_offset, -boundary - y_offset,)))
             .collect();
 
         // Transform pixels to colors
@@ -174,10 +175,20 @@ async fn main() {
 
         // Write the current applied c value
         let c_text = &format!("c = {mx:.3} + {my:.3}i");
+
+        // Write the current fps
+        let fps = get_fps();
+        let fps_text = &format!("Current fps : {fps}");
+
+        let c_size = measure_text(c_text, None, FONT_SIZE as u16, 1.0);
+        let fps_text_height = measure_text(fps_text, None, FONT_SIZE as u16, 1.0).height;
+
         // Draw a semi-transparent rectangle in case the text is over a black section
-        let size = measure_text(c_text, None, FONT_SIZE as u16, 1.0);
-        draw_rectangle(0.,0.,size.width+TEXT_X, size.height+TEXT_Y, TRANSPARENT_GREY);
-        draw_text(c_text, TEXT_X, TEXT_Y, FONT_SIZE, BLACK);
+        draw_rectangle(0.,0.,c_size.width+TEXT_X, c_size.height+fps_text_height+C_TEXT_Y, TRANSPARENT_GREY);
+
+        // Draw the text onto the screen
+        draw_text(c_text, TEXT_X, C_TEXT_Y, FONT_SIZE, BLACK);
+        draw_text(fps_text, TEXT_X, FPS_TEXT_Y, FONT_SIZE, BLACK);
 
         next_frame().await;
     }
