@@ -106,7 +106,7 @@ async fn main() {
         if (new_mx != mx || new_my != my) && !freeze {
             (mx, my) = (new_mx, new_my);
             // Map the mouse position to the range in which c lies
-            (mx, my) = (map_value(mx as f64, 0., w, -START_BOUNDARY, START_BOUNDARY,) as f32, map_value(my as f64, 0., h, -START_BOUNDARY, START_BOUNDARY,) as f32);
+            (mx, my) = (map_value(mx as f64, 0., w, -START_BOUNDARY, START_BOUNDARY,) as f32, map_value(my as f64, 0., h, START_BOUNDARY, -START_BOUNDARY,) as f32);
         }
 
         // Handle key presses
